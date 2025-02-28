@@ -1,0 +1,28 @@
+public class AccountProcessor {   
+    @future
+    public static void countContacts(List<ID> accIds) {
+         List<Account> accountToUpdate = new  List<Account>();
+         List<Account> accList = [Select Id,Number_Of_Contacts__c, (Select Id from Contacts) from Account where Id IN :accIds];
+        for(Account acc: accList) {     
+            if(acc.Contacts != null) {
+                acc.Number_Of_Contacts__c = acc.Contacts.size();
+                 // added to the list = accountToUpdate 
+            	accountToUpdate.add(acc);
+            }
+    	}
+       update accList;    
+	}
+}
+
+
+@isTest
+public class AccountProcessorTest {
+    @isTest
+    public static testMethod void asdf(){
+        Account a = new Account(Name='asdf');
+        insert a;
+        Test.startTest();
+        AccountProcessor.countContacts(new List<Id>{a.Id});
+        Test.stopTest();
+    }
+}
