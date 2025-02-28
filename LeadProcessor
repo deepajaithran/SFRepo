@@ -1,0 +1,52 @@
+public class LeadProcessor implements Database.Batchable<SObject> {
+    //If sttaeful- public class LeadProcessor implemenys Database.Batchable<SObject>, Database.Sateful
+    //update all Lead records in the org with a specific LeadSource.
+    public Integer recordsProcessed = 0;
+    public Database.QueryLocator start(Database.BatchableContext bc) {
+        return Database.getQueryLocator('SELECT LeadSource from Lead');
+    }
+    public void execute(Database.BatchableContext bc, List<Lead> leadsInput) {
+         // process each batch of records
+        List<Lead> leads = new List<Lead>();
+        for(Lead l : leadsInput) {
+            l.LeadSource = 'Dreamforce';
+            recordsProcessed = recordsProcessed + 1;
+        }
+        update leads;
+    }
+    public void finish(Database.BatchableContext bc) {
+         System.debug(recordsProcessed + ' records processed.');
+       // AsyncApexJob job = [SELECT Id, Status, NumberOfErrors,
+            //JobItemsProcessed,
+           // TotalJobItems, CreatedBy.Email
+           // FROM AsyncApexJob
+           // WHERE Id = :bc.getJobId()];
+        // call some utility to send email
+       // EmailUtils.sendMessage(job, recordsProcessed);
+    }
+}
+
+
+@isTest
+public class LeadProcessorTest {     
+    @testSetup
+    static void setup() {
+        List<Lead> leads = new List<Lead>();
+        for(Integer counter=0 ;counter <200;counter++){
+            Lead lead = new Lead();
+            lead.FirstName ='FirstName';
+            lead.LastName ='LastName'+counter;
+            lead.Company ='demo'+counter;
+            leads.add(lead);
+        } 
+        insert leads;
+    }
+    
+    @isTest
+    public static void testLeadProcessor(){       
+        Test.startTest();
+        LeadProcessor lp = new LeadProcessor();
+        Id batchId = Database.executeBatch(lp);
+        Test.stopTest();
+    }
+}
