@@ -1,0 +1,51 @@
+//inserts the same Contact for each Account for a specific state.
+public class AddPrimaryContact implements Queueable {   
+    private Contact c;
+    private String state;
+    public AddPrimaryContact(Contact c,String state) {
+        this.c = c;
+        this.state = state;
+    }
+       
+    public void execute(QueueableContext qc) {
+        List<Account> acct = [select id,Name,(SELECT Id, FirstName, LastName from contacts) from account where billingstate = : state LIMIT 200];
+        List<Contact> ContactList = new List<Contact>();
+        for (Account account : acct) {           
+              Contact cont = c.clone(false, true);
+              cont.AccountId = account.Id;
+              ContactList.add(cont);        	
+        }
+        if (ContactList.size() > 0) {
+            insert ContactList;
+        }
+    }
+}
+
+@isTest
+public class AddPrimaryContactTest {
+    @isTest 
+    static void testAddPrimaryContact() {
+        // setup
+        List<Account> testAcctList = new List<Account>();
+        for (Integer i = 0; i < 50; i++) {
+            testAcctList.add(new Account(BillingState = 'CA', name = 'TestAccount' + i));
+        }
+        for (Integer j = 0; j < 50; j++) {
+            testAcctList.add(new Account(BillingState = 'NY', name = 'TestAccount' + j));
+		}
+        insert testAcctList;
+        
+        Contact c = new Contact(FirstName='Test', LastName='test');
+        insert c;
+        String state = 'CA';
+        AddPrimaryContact apc = new AddPrimaryContact(c, state);
+        
+        // execution
+        Test.startTest();
+        	System.enqueueJob(apc);
+        Test.stopTest();
+        
+        // result
+        System.assertEquals(50, [SELECT count() FROM Contact WHERE accountId IN (SELECT Id FROM Account WHERE BillingState = :state)]);
+    }
+}
